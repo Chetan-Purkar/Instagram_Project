@@ -1,0 +1,15 @@
+# Backend (Spring Boot)
+instagram-clone-backend/target/
+*.iml
+*.class
+/.idea
+/.settings
+
+# Frontend (React)
+instagram-clone-frontend/node_modules/
+instagram-clone-frontend/build/
+instagram-clone-frontend/.env
+
+# OS / Editor
+.DS_Store
+*.log
