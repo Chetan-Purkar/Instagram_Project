@@ -12,4 +12,12 @@ It includes user authentication, posts (images/videos/audio), likes, comments, f
 
 ---
 
-## 📂 Project Structure
+## ✨ Features
+- 🔑 Secure authentication with JWT  
+- 🖼️ Post images, videos, and audio  
+- 📖 Stories with auto-expiry after 24 hours   <-- NEW
+- ❤️ Like & comment on posts  
+- 👥 Follow/unfollow users  
+- 💬 Real-time chat with WebSocket  
+- 📱 Responsive UI  
+
