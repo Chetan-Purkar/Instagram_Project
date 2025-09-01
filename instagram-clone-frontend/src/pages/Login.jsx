@@ -31,9 +31,9 @@ const Login = () => {
     };
 
     return (
-        <div className="flex justify-center items-center min-h-screen bg-gray-100">
-            <div className="bg-white p-6 rounded-lg shadow-lg w-full max-w-sm">
-                <h2 className="text-2xl font-bold text-center mb-4">Login</h2>
+        <div className="flex justify-center items-center min-h-screen bg-gray-700">
+            <div className="bg-gray-900 p-6 rounded-lg shadow-lg w-full max-w-sm">
+                <h2 className="text-2xl font-bold text-center mb-4 text-white">Login</h2>
                 {error && <p className="text-red-500 text-sm text-center">{error}</p>}
                 
                 <form onSubmit={handleSubmit} className="flex flex-col gap-4">
@@ -43,7 +43,7 @@ const Login = () => {
                         placeholder="Username"
                         value={authRequest.username}
                         onChange={handleChange}
-                        className="p-3 border rounded-md focus:ring-2 focus:ring-blue-400 outline-none"
+                        className="p-3 bg-gray-800 text-white border rounded-md focus:ring-2 focus:ring-blue-400 outline-none"
                         required
                     />
                     <input
@@ -52,7 +52,7 @@ const Login = () => {
                         placeholder="Password"
                         value={authRequest.password}
                         onChange={handleChange}
-                        className="p-3 border rounded-md focus:ring-2 focus:ring-blue-400 outline-none"
+                        className="p-3 bg-gray-800 border rounded-md focus:ring-2 focus:ring-blue-400 outline-none"
                         required
                     />
                     <button
@@ -66,7 +66,7 @@ const Login = () => {
                     </button>
                 </form>
 
-                <p className="text-center text-sm mt-4">
+                <p className="text-center text-sm mt-4 text-white">
                     Don't have an account? 
                     <a href="/signup" className="text-blue-500 hover:underline"> Sign up</a>
                 </p>

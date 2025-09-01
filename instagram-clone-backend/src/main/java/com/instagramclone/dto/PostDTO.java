@@ -22,6 +22,7 @@ public class PostDTO {
     private String audioType;   // ✅ e.g. audio/mp3
     private byte[] audioData;   // raw audio bytes (optional, can be removed if you use only audioUrl)
     private String audioUrl;    // ✅ Base64-encoded audio URL
+    private String audioName;
 
     private int likesCount;
     private int commentsCount;
@@ -59,6 +60,7 @@ public class PostDTO {
         if (post.getAudioData() != null) {
             this.audioData = post.getAudioData();
             this.audioType = post.getAudioType();
+            this.audioName = post.getAudioName();
             this.audioUrl = "data:" + post.getAudioType() + ";base64,"
                     + Base64.getEncoder().encodeToString(post.getAudioData());
 
@@ -112,6 +114,9 @@ public class PostDTO {
 
     public String getAudioUrl() { return audioUrl; }
     public void setAudioUrl(String audioUrl) { this.audioUrl = audioUrl; }
+    
+    public String getAudioName() { return audioName; }
+    public void setAudioName(String audioName) { this.audioName = audioName; }
 
     public int getLikesCount() { return likesCount; }
     public void setLikesCount(int likesCount) { this.likesCount = likesCount; }

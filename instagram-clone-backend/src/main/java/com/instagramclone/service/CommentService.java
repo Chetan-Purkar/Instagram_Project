@@ -7,59 +7,42 @@ import com.instagramclone.model.User;
 import com.instagramclone.repository.CommentRepository;
 import com.instagramclone.repository.PostRepository;
 import com.instagramclone.repository.UserRepository;
+import org.springframework.stereotype.Service;
+import org.springframework.http.ResponseEntity;
+import org.springframework.http.HttpStatus;
 
-import java.util.Base64;
 import java.util.List;
 import java.util.Optional;
 import java.util.stream.Collectors;
 
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.http.HttpStatus;
-import org.springframework.http.ResponseEntity;
-import org.springframework.stereotype.Service;
-
 @Service
 public class CommentService {
 
-    @Autowired
-    private CommentRepository commentRepository;
-    
-    @Autowired
-    private PostRepository postRepository;
-    
-    @Autowired
-    private UserRepository userRepository;
-    
-    
- // Fetch comments for a specific post
+    private final CommentRepository commentRepository;
+    private final PostRepository postRepository;
+    private final UserRepository userRepository;
+
+    public CommentService(CommentRepository commentRepository,
+                          PostRepository postRepository,
+                          UserRepository userRepository) {
+        this.commentRepository = commentRepository;
+        this.postRepository = postRepository;
+        this.userRepository = userRepository;
+    }
+
+    // ✅ Fetch comments for a post
     public List<CommentDTO> getCommentsByPostId(Long postId) {
-        List<Comment> comments = commentRepository.findByPostId(postId);
-
-        return comments.stream()
-                .map(comment -> {
-                    String username = comment.getUser().getUsername();
-
-                    // Get the profile image in Base64 format
-                    byte[] profileImageBytes = comment.getUser().getProfileImage();
-                    String profileImage = (profileImageBytes != null)
-                            ? Base64.getEncoder().encodeToString(profileImageBytes)
-                            : null;
-
-                    return new CommentDTO(
-                            comment.getId(),
-                            comment.getText(),
-                            username,
-                            comment.getPost().getId(),
-                            profileImage // 🔥 Include profile image here
-                    );
-                })
+        return commentRepository.findByPostId(postId)
+                .stream()
+                .map(CommentDTO::fromEntity)
                 .collect(Collectors.toList());
     }
 
+    // ✅ Add a new comment
     public Comment addComment(Long postId, String username, String text) {
         User user = userRepository.findByUsername(username)
-                .orElseThrow(() -> new RuntimeException("comments User not found"));
-        
+                .orElseThrow(() -> new RuntimeException("User not found"));
+
         Post post = postRepository.findById(postId)
                 .orElseThrow(() -> new RuntimeException("Post not found"));
 
@@ -67,17 +50,16 @@ public class CommentService {
         comment.setText(text);
         comment.setUser(user);
         comment.setPost(post);
-        
+
         return commentRepository.save(comment);
     }
-    
-    
-    public Comment getCommentById(Long commentId) {
-        return commentRepository.findById(commentId).orElse(null);
+
+    // ✅ Get comment by ID
+    public Optional<Comment> getCommentById(Long commentId) {
+        return commentRepository.findById(commentId);
     }
 
-    
-    
+    // ✅ Delete comment with user verification
     public ResponseEntity<String> deleteComment(Long commentId, String currentUsername) {
         Optional<Comment> optionalComment = commentRepository.findById(commentId);
 

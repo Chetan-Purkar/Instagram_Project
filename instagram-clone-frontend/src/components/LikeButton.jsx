@@ -1,5 +1,4 @@
 // File: components/LikeButton.jsx
-import React from "react";
 import { toggleLike } from "../api/LikesApi";
 
 const LikeButton = ({ postId, likeInfo, setLikesByPost }) => {

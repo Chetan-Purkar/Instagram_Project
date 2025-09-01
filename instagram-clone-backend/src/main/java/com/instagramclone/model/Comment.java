@@ -1,16 +1,12 @@
 package com.instagramclone.model;
 
-import jakarta.persistence.Entity;
-import jakarta.persistence.GeneratedValue;
-import jakarta.persistence.GenerationType;
-import jakarta.persistence.Id;
-import jakarta.persistence.JoinColumn;
-import jakarta.persistence.ManyToOne;
-import jakarta.persistence.Table;
+import jakarta.persistence.*;
+import java.time.LocalDateTime;
 
 @Entity
-@Table(name = "comments")  // Renaming the table to avoid conflict
+@Table(name = "comments")  // Avoid conflict with SQL reserved words
 public class Comment {
+
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
@@ -18,44 +14,40 @@ public class Comment {
     private String text;
 
     @ManyToOne
-    @JoinColumn(name = "post_id")
+    @JoinColumn(name = "post_id", nullable = false)
     private Post post;
 
     @ManyToOne
-    @JoinColumn(name = "user_id")
+    @JoinColumn(name = "user_id", nullable = false)
     private User user;
 
-	public Long getId() {
-		return id;
-	}
+    private LocalDateTime createdAt;
+    private LocalDateTime updatedAt;
 
-	public void setId(Long id) {
-		this.id = id;
-	}
+    public Comment() {
+        this.createdAt = LocalDateTime.now();
+        this.updatedAt = LocalDateTime.now();
+    }
 
-	public String getText() {
-		return text;
-	}
+    // Getters and Setters
+    public Long getId() { return id; }
+    public void setId(Long id) { this.id = id; }
 
-	public void setText(String text) {
-		this.text = text;
-	}
+    public String getText() { return text; }
+    public void setText(String text) { 
+        this.text = text; 
+        this.updatedAt = LocalDateTime.now(); // auto-update timestamp when text changes
+    }
 
-	public Post getPost() {
-		return post;
-	}
+    public Post getPost() { return post; }
+    public void setPost(Post post) { this.post = post; }
 
-	public void setPost(Post post) {
-		this.post = post;
-	}
+    public User getUser() { return user; }
+    public void setUser(User user) { this.user = user; }
 
-	public User getUser() {
-		return user;
-	}
+    public LocalDateTime getCreatedAt() { return createdAt; }
+    public void setCreatedAt(LocalDateTime createdAt) { this.createdAt = createdAt; }
 
-	public void setUser(User user) {
-		this.user = user;
-	}
-
-    // Getters and Setters...
+    public LocalDateTime getUpdatedAt() { return updatedAt; }
+    public void setUpdatedAt(LocalDateTime updatedAt) { this.updatedAt = updatedAt; }
 }

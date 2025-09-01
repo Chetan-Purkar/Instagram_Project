@@ -5,7 +5,6 @@ import com.instagramclone.dto.AuthResponse;
 import com.instagramclone.model.User;
 import com.instagramclone.repository.UserRepository;
 import com.instagramclone.security.JwtUtil;
-
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.userdetails.UserDetails;
@@ -35,16 +34,12 @@ public class AuthService {
     }
 
     /**
-     * Handles user registration
+     * Registers a new user
      */
     public String signup(User user) {
-        // Check if username already exists
         userRepository.findByUsername(user.getUsername())
-                .ifPresent(u -> {
-                    throw new RuntimeException("Username '" + user.getUsername() + "' already exists!");
-                });
+                .ifPresent(u -> { throw new RuntimeException("Username already exists!"); });
 
-        // Encode password before saving
         user.setPassword(passwordEncoder.encode(user.getPassword()));
         userRepository.save(user);
 
@@ -52,26 +47,19 @@ public class AuthService {
     }
 
     /**
-     * Handles user login and JWT token generation
+     * Authenticates user and generates JWT token
      */
     public AuthResponse login(AuthRequest authRequest) {
-        // Authenticate credentials
         authenticationManager.authenticate(
-                new UsernamePasswordAuthenticationToken(
-                        authRequest.getUsername(),
-                        authRequest.getPassword()
-                )
+                new UsernamePasswordAuthenticationToken(authRequest.getUsername(), authRequest.getPassword())
         );
 
-        // Load user details
         UserDetails userDetails = userDetailsService.loadUserByUsername(authRequest.getUsername());
         String token = jwtUtil.generateToken(userDetails.getUsername());
 
-        // Fetch user info from DB
         User user = userRepository.findByUsername(authRequest.getUsername())
-                .orElseThrow(() -> new RuntimeException("User not found with username: " + authRequest.getUsername()));
+                .orElseThrow(() -> new RuntimeException("User not found"));
 
-        // Return Auth response with token & user details
         return new AuthResponse(token, user.getId(), user.getUsername());
     }
 }

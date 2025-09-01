@@ -4,7 +4,7 @@ import { AuthService } from "../services/AuthService";
 import { useNavigate } from "react-router-dom";
 
 const Signup = () => {
-    const [userData, setUserData] = useState({ username: "", email: "", password: "" });
+    const [userData, setUserData] = useState({ username: "", name:"", email: "", password: "" });
     const [error, setError] = useState(null);
     const [loading, setLoading] = useState(false);
     const navigate = useNavigate();
@@ -33,9 +33,9 @@ const Signup = () => {
     };
 
     return (
-        <div className="flex justify-center items-center min-h-screen bg-gray-100">
-            <div className="bg-white p-6 rounded-lg shadow-lg w-full max-w-sm">
-                <h2 className="text-2xl font-bold text-center mb-4">Sign Up</h2>
+        <div className="flex justify-center items-center min-h-screen bg-gray-700">
+            <div className="bg-gray-900 p-6 rounded-lg shadow-lg w-full max-w-sm">
+                <h2 className="text-2xl font-bold text-center mb-4 text-white">Sign Up</h2>
                 {error && <p className="text-red-500 text-sm text-center">{error}</p>}
 
                 <form onSubmit={handleSubmit} className="flex flex-col gap-4">
@@ -48,6 +48,16 @@ const Signup = () => {
                         className="p-3 border rounded-md focus:ring-2 focus:ring-blue-400 outline-none"
                         required
                     />
+                    <input
+                        type="text"
+                        name="name"
+                        placeholder="Name"
+                        value={userData.name}
+                        onChange={handleChange}
+                        className="p-3 border rounded-md focus:ring-2 focus:ring-blue-400 outline-none"
+                        required
+                    />
+
                     <input
                         type="email"
                         name="email"
@@ -77,7 +87,7 @@ const Signup = () => {
                     </button>
                 </form>
 
-                <p className="text-center text-sm mt-4">
+                <p className="text-center text-sm mt-4 text-white">
                     Already have an account? 
                     <a href="/login" className="text-blue-500 hover:underline"> Login</a>
                 </p>

@@ -1,7 +1,8 @@
-package com.instagramclone.controller;
+	package com.instagramclone.controller;
 
 import com.instagramclone.dto.PostDTO;
 import com.instagramclone.dto.UserDTO;
+import com.instagramclone.enums.AccountPrivacy;
 import com.instagramclone.model.Post;
 import com.instagramclone.model.User;
 import com.instagramclone.service.PostService;
@@ -28,7 +29,7 @@ import java.util.stream.Collectors;
 public class UserController {
 
     private final UserService userService;
-    private final PostService postService; // Inject PostService
+    private final PostService postService;
 
     public UserController(UserService userService, PostService postService) {
         this.userService = userService;
@@ -52,43 +53,57 @@ public class UserController {
                 .orElseGet(() -> ResponseEntity.status(HttpStatus.NOT_FOUND).build());
     }
 
-    // Get user by username along with their posts
     @GetMapping("/{username}")
-    public ResponseEntity<?> getUserByUsername(@PathVariable String username, Principal principal ) {
-        Optional<User> user = userService.findByUsername(username);
-        String currentUsername = principal.getName(); // Logged-in user
+    public ResponseEntity<?> getUserByUsername(@PathVariable String username, Principal principal) {
+        Optional<User> userOpt = userService.findByUsername(username);
+        User viewer = userService.findByUsername(principal.getName())
+                .orElseThrow(() -> new RuntimeException("Viewer not found"));
 
-        if (user.isPresent()) {
-            User foundUser = user.get();
-            
-            // Convert User to UserDTO
-            UserDTO userDTO = new UserDTO(foundUser);
-
-            // Fetch posts for the user
-            List<Post> posts = postService.getPostByUsername(username);
-            List<PostDTO> postDTOs = posts.stream()
-                    .filter(post -> post != null && post.getUser() != null)
-                    .map(post -> new PostDTO(post, currentUsername)) // Pass currentUsername for liked status
-                    .collect(Collectors.toList());
-            
-            Map<String, Object> response = new HashMap<>();
-            response.put("id", userDTO.getId());
-            response.put("username", userDTO.getUsername());
-            response.put("name", userDTO.getName());
-            response.put("email", userDTO.getEmail());
-            response.put("bio", userDTO.getBio());
-            response.put("profileImage", userDTO.getProfileImage());
-            response.put("likedByCurrentUser", userDTO.isLikedByCurrentUser());
-            response.put("posts", postDTOs);
-
-            return ResponseEntity.ok(response);
-
-            
-        } else {
+        if (userOpt.isEmpty()) {
             return ResponseEntity.status(HttpStatus.NOT_FOUND)
                     .body(Collections.singletonMap("error", "User not found"));
         }
+
+        User targetUser = userOpt.get();
+
+        boolean canViewFullProfile = userService.canViewProfile(targetUser, viewer);
+
+        // Basic profile info visible to everyone (name, bio, profile image)
+        Map<String, Object> response = new HashMap<>();
+        response.put("id", targetUser.getId());
+        response.put("username", targetUser.getUsername());
+        response.put("name", targetUser.getName());
+        response.put("bio", targetUser.getBio());
+
+        // Profile image as Base64
+        byte[] profileImageData = targetUser.getProfileImage();
+        String profileImage = (profileImageData != null) ? 
+                java.util.Base64.getEncoder().encodeToString(profileImageData) : null;
+        response.put("profileImage", profileImage);
+
+        if (canViewFullProfile) {
+            // ✅ Only followers or self can see posts
+            List<Post> posts = postService.getPostByUsername(username);
+            List<PostDTO> postDTOs = posts.stream()
+                    .map(post -> new PostDTO(post, viewer.getUsername()))
+                    .collect(Collectors.toList());
+            response.put("posts", postDTOs);
+
+            // You can also add followers, following, stories here if needed
+            // e.g., response.put("followers", followerService.getFollowers(username));
+            // e.g., response.put("following", followerService.getFollowing(username));
+        } else {
+            // ❌ Not a follower → cannot see posts/stories/followers/following
+            response.put("posts", Collections.emptyList());
+            response.put("followers", Collections.emptyList());
+            response.put("following", Collections.emptyList());
+            response.put("stories", Collections.emptyList());
+        }
+
+        return ResponseEntity.ok(response);
     }
+
+
 
 
     // Get all usernames
@@ -140,5 +155,13 @@ public class UserController {
 
         return ResponseEntity.ok(userDTOs);
     }
+    
+    @PutMapping("/privacy")
+    public ResponseEntity<String> updatePrivacy(@RequestParam AccountPrivacy privacy, Principal principal) {
+        String currentUsername = principal.getName(); // logged-in user only
+        userService.updatePrivacy(currentUsername, privacy);
+        return ResponseEntity.ok("Privacy updated to " + privacy);
+    }
+
 
 }

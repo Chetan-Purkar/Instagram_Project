@@ -1,7 +1,8 @@
-import React, { useEffect, useState } from "react";
+import { useEffect, useState } from "react";
 import { getFollowers } from "../api/FollowersApi";
+import { Link } from "react-router-dom";
 
-const SearchFollowers = ({ username, searchTerm }) => {
+const SearchFollowers = ({ username, searchTerm, closePopup }) => {
   const [followers, setFollowers] = useState([]);
   const [filtered, setFiltered] = useState([]);
 
@@ -26,18 +27,28 @@ const SearchFollowers = ({ username, searchTerm }) => {
   }, [searchTerm, followers]);
 
   return (
-    <ul>
-      {filtered.map((user) => (
-        <li key={user.followerUsername} className="flex items-center gap-3 mb-3">
+   <ul>
+    {filtered.map((user) => (
+      <li key={user.followerUsername} className="flex items-center gap-3 mb-3">
+        <Link to={`/${user.followerUsername}`}>
           <img
             src={`data:image/jpeg;base64,${user.profileImage}`}
             alt={user.followerUsername}
-            className="w-10 h-10 rounded-full object-cover"
+            className="w-10 h-10 rounded-full object-cover cursor-pointer"
+            onClick={closePopup} 
           />
-          <span className="text-white">{user.followerUsername}</span>
-        </li>
-      ))}
-    </ul>
+        </Link>
+        <Link
+          to={`/${user.followerUsername}`}
+          className="text-white hover:underline"
+          onClick={closePopup} 
+        >
+          {user.followerUsername}
+        </Link>
+      </li>
+    ))}
+  </ul>
+
   );
 };
 

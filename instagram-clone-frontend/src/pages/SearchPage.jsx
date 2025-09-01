@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import { useState } from "react";
 import SearchUser from "../components/UserSearchBar"; // adjust path as needed
 
 const SearchPage = () => {

@@ -30,15 +30,16 @@ public class SecurityConfig {
             .cors(cors -> cors.configurationSource(corsConfigurationSource()))
             .csrf(csrf -> csrf.disable())
             .authorizeHttpRequests(auth -> auth
-                .requestMatchers(
-                    "/api/auth/signup",
-                    "/api/auth/login",
-                    "/ws/**",                  // ✅ Allow WebSocket handshake
-                    "/topic/**",               // ✅ Allow messaging topic access
-                    "/app/**"                  // ✅ Allow STOMP app destination
-                ).permitAll()
-                .anyRequest().authenticated()
-            )
+            	    .requestMatchers(
+            	        "/api/auth/**",
+            	        "/ws/**",
+            	        "/topic/**",
+            	        "/app/**",
+            	        "/api/messages/**"   // ✅ added
+            	    ).permitAll()
+            	    .requestMatchers("/api/auth/logout").authenticated() //
+            	    .anyRequest().authenticated()
+            	)
             .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
             .addFilterBefore(jwtFilter, UsernamePasswordAuthenticationFilter.class);
 

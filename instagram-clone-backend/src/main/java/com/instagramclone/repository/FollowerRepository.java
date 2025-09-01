@@ -20,5 +20,11 @@ public interface FollowerRepository extends JpaRepository<Follower, Long> {
     @Query("SELECT f FROM Follower f WHERE f.follower.username = :username OR f.follower.username LIKE %:username%")
     List<Follower> searchFollowingByUsername(@Param("username") String username);
 
+    // ✅ Add this for your privacy check
+    boolean existsByFollowerAndFollowing(User follower, User following);
+    
+    long countByFollowing(User following);
+    
+    long countByFollower(User follower);
 
 }

@@ -1,5 +1,5 @@
 import {useContext} from "react";
-import ChatUsers from "../components/ChatUsers";
+import ChatUsers from "../components/massages/ChatUsers";
 import {ThemeContext} from "../context/ThemeContext";
 
 const ChatUsersPage = () => {

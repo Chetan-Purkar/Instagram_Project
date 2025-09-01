@@ -112,6 +112,25 @@ export const updateUser = async (userId, name, email, bio, profileImage) => {
     }
 };
 
+// Update account privacy with JWT token
+export const updatePrivacy = async (privacy, token) => {
+  try {
+    const response = await axios.put(`${API_BASE_URL}/privacy`,
+      null,
+      {
+        params: { privacy }, // ?privacy=PUBLIC or ?privacy=PRIVATE
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      }
+    );
+    return response.data;
+  } catch (error) {
+    console.error("Error updating privacy:", error);
+    throw error;
+  }
+};
+
 // 🔍 Search users by username (partial match, first/middle letters)
 export const searchUsers = async (username) => {
     try {

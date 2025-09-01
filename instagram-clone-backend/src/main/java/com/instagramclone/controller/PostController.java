@@ -40,6 +40,7 @@ public class PostController {
             @RequestParam String mediaType,
             @RequestParam(value = "audioData", required = false) MultipartFile audioFile,
             @RequestParam String caption,
+            @RequestParam String audioName,
             Principal principal) throws java.io.IOException {
 
         try {
@@ -58,6 +59,7 @@ public class PostController {
 
             // Handle optional audio file
             if (audioFile != null && !audioFile.isEmpty()) {
+            	post.setAudioName(audioName);
                 post.setAudioData(audioFile.getBytes()); // ✅ IOException handled in catch block
                 post.setAudioType(audioFile.getContentType());
             }
@@ -78,6 +80,8 @@ public class PostController {
     public ResponseEntity<List<PostDTO>> getAllPosts(Principal principal) {
         try {
             String currentUsername = principal.getName(); // ✅ Logged-in user
+            
+            
 
             List<Post> posts = postService.getAllPosts();
 
@@ -88,7 +92,8 @@ public class PostController {
             List<PostDTO> postDTOs = posts.stream()
                 .filter(post -> post != null && post.getUser() != null)
                 .map(post -> {
-                    boolean liked = false;
+                    @SuppressWarnings("unused")
+					boolean liked = false;
 
                     if (currentUsername != null && post.getLikes() != null) {
                         liked = post.getLikes().stream()

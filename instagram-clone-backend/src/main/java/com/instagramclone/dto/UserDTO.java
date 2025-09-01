@@ -33,7 +33,7 @@ public class UserDTO {
 
     // New constructor (with likedByCurrentUser)
     public UserDTO(User user, boolean likedByCurrentUser) {
-    	this.id = user.getId();
+        this.id = user.getId();
         this.username = user.getUsername();
         this.name = user.getName();
         this.email = user.getEmail();
@@ -45,16 +45,14 @@ public class UserDTO {
                 ? user.getPosts().stream().map(PostDTO::new).collect(Collectors.toList())
                 : null;
         this.likedByCurrentUser = likedByCurrentUser;
-        
-        if (user.getProfileImage() == null) {
-            System.out.println("Profile image is null for user: " + user.getUsername());
-        } else {
-            this.profileImage = Base64.getEncoder().encodeToString(user.getProfileImage());
-        }
-
     }
 
     // Getters and Setters
+    public UserDTO(Long id, String username, String name) {
+        this.id = id;
+        this.username = username;
+        this.name = name;
+    }
 
     public Long getId() {
         return id;
@@ -119,4 +117,5 @@ public class UserDTO {
     public void setLikedByCurrentUser(boolean likedByCurrentUser) {
         this.likedByCurrentUser = likedByCurrentUser;
     }
+
 }

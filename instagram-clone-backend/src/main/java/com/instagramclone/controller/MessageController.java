@@ -2,7 +2,7 @@ package com.instagramclone.controller;
 
 import com.instagramclone.dto.MessageDTO;
 import com.instagramclone.dto.UserDTO;
-import com.instagramclone.model.Message;
+import com.instagramclone.enums.MessageStatus;
 import com.instagramclone.model.User;
 import com.instagramclone.repository.UserRepository;
 import com.instagramclone.service.MessageService;
@@ -14,6 +14,8 @@ import java.util.List;
 import java.util.Optional;
 import java.util.stream.Collectors;
 
+
+
 @RestController
 @RequestMapping("/api/messages")
 @CrossOrigin(origins = "http://localhost:3000", allowCredentials = "true")
@@ -21,65 +23,85 @@ public class MessageController {
 
     private final MessageService messageService;
     private final UserRepository userRepository;
+    
+
 
     public MessageController(MessageService messageService, UserRepository userRepository) {
         this.messageService = messageService;
         this.userRepository = userRepository;
     }
 
-    // 1. Send a message
+    /* ------------------- 📌 1. Send a message ------------------- */
     @PostMapping("/send")
     public ResponseEntity<MessageDTO> sendMessage(@RequestBody MessageDTO dto, Principal principal) {
         String senderUsername = principal.getName();
-        
         User sender = userRepository.findByUsername(senderUsername).orElseThrow();
-        Message saved = messageService.sendMessage(sender.getId(), dto.getReceiverId(), dto.getContent());
-        
-        return ResponseEntity.ok(new MessageDTO(saved));
+
+        MessageDTO saved = messageService.sendMessage(
+                sender.getId(),
+                dto.getReceiverId(),
+                dto.getContent()
+        );
+
+  
+        return ResponseEntity.ok(saved);
     }
 
-
-    // 2. Get conversation between current and selected user
+    /* ------------------- 📌 2. Get conversation ------------------- */
     @GetMapping("/chat")
     public ResponseEntity<List<MessageDTO>> getChat(@RequestParam Long chatWithId, Principal principal) {
         String currentUsername = principal.getName();
-       
         User current = userRepository.findByUsername(currentUsername).orElseThrow();
-        List<Message> conversation = messageService.getConversation(current.getId(), chatWithId);
 
-        // Convert to DTO to avoid circular serialization
-        List<MessageDTO> dtos = conversation.stream().map(MessageDTO::new).collect(Collectors.toList());
+        List<MessageDTO> dtos = messageService.getConversation(current.getId(), chatWithId);
+        
 
         return ResponseEntity.ok(dtos);
     }
 
-
-    // 3. Get all chat users (as UserDTOs)
+    /* ------------------- 📌 3. Get all chat users ------------------- */
     @GetMapping("/users")
     public ResponseEntity<List<UserDTO>> getAllChatUsers(Principal principal) {
         String currentUsername = principal.getName();
-        System.out.println("Fetching chat users for: " + currentUsername);
-
         User current = userRepository.findByUsername(currentUsername).orElseThrow();
-        List<User> chatUsers = messageService.getAllChatUsers(current.getId());
 
-        chatUsers.forEach(user -> System.out.println("Chat user: " + user.getUsername()));
+        List<UserDTO> userDTOs = messageService.getAllChatUsers(current.getId())
+                .stream()
+                .map(UserDTO::new)
+                .collect(Collectors.toList());
 
-        List<UserDTO> userDTOs = chatUsers.stream().map(UserDTO::new).collect(Collectors.toList());
         return ResponseEntity.ok(userDTOs);
     }
 
-    // 4. Get user details by userId
+    /* ------------------- 📌 4. Get user details ------------------- */
     @GetMapping("/user/{userId}")
     public ResponseEntity<UserDTO> getUserById(@PathVariable Long userId) {
         Optional<User> userOptional = userRepository.findById(userId);
 
-        if (userOptional.isPresent()) {
-            User user = userOptional.get();
-            UserDTO userDTO = new UserDTO(user);
-            return ResponseEntity.ok(userDTO);
-        } else {
-            return ResponseEntity.notFound().build();
-        }
+
+        return userOptional.map(user -> ResponseEntity.ok(new UserDTO(user)))
+                .orElseGet(() -> ResponseEntity.notFound().build());
+    }
+
+    /* ------------------- 📌 5. Update message status ------------------- */
+    @PutMapping("/{messageId}/status")
+    public ResponseEntity<MessageDTO> updateMessageStatus(
+            @PathVariable Long messageId,
+            @RequestParam MessageStatus status
+    ) {
+        MessageDTO updated = messageService.updateMessageStatus(messageId, status);
+
+        return ResponseEntity.ok(updated);
+    }
+
+    /* ------------------- 📌 6. Soft delete message ------------------- */
+    @DeleteMapping("/{messageId}")
+    public ResponseEntity<Void> deleteMessage(@PathVariable Long messageId, Principal principal) {
+        String currentUsername = principal.getName();
+        User current = userRepository.findByUsername(currentUsername).orElseThrow();
+
+        messageService.deleteMessage(messageId, current.getId());
+
+        return ResponseEntity.noContent().build();
     }
 }

@@ -1,13 +1,14 @@
 // File: src/pages/ProfilePage.jsx
-import React, { useEffect, useState, useContext, useRef } from "react";
+import { useEffect, useState, useContext, useRef } from "react";
 import { ThemeContext } from "../context/ThemeContext";
 import { getUserByUsername, getCurrentUser } from "../api/UserApi";
 import { useParams, useNavigate } from "react-router-dom";
 import moment from "moment";
-import FollowStats from '../components/FollowStats';
-import FollowButton from "../components/FollowButton";
+import FollowStats from '../components/followers/IsFollowing';
+import FollowButton from "../components/followers/FollowButton";
 import LikeButton from "../components/LikeButton";
-import CommentBox from "../components/CommentBox";
+import CommentBox from "../components/comment/CommentBox";
+import UserStory from "../components/Story/UserStories"; 
 
 const ProfilePage = () => {
     const { theme } = useContext(ThemeContext);
@@ -20,6 +21,7 @@ const ProfilePage = () => {
     const [selectedPost, setSelectedPost] = useState(null);
     const [likesByPost, setLikesByPost] = useState({});
     const navigate = useNavigate();
+    const [showStory, setShowStory] = useState(false);
 
 
     useEffect(() => {
@@ -77,27 +79,63 @@ const ProfilePage = () => {
             <div className={`w-full max-w-3xl mx-auto p-6 sm:p-8 rounded-lg shadow-xl transition-all duration-300
                 ${theme === "dark" ? "bg-gray-900 text-white" : "bg-white text-gray-900"}`}>
 
+                
                 <div className="flex flex-col sm:flex-row sm:items-center sm:space-x-8">
-                    <img
-                        src={
+
+                    
+                    <div className="flex flex-col items-center">
+                        {/* Profile Image */}
+                        <img
+                            src={
                             profileUser.profileImage
                                 ? `data:image/png;base64,${profileUser.profileImage}`
                                 : "https://via.placeholder.com/150"
-                        }
-                        alt="Profile"
-                        className="w-28 h-28 sm:w-32 sm:h-32 rounded-full object-cover mb-4 sm:mb-0"
-                    />
+                            }
+                            alt="Profile"
+                            className="w-28 h-28 sm:w-32 sm:h-32 rounded-full object-cover mb-4 sm:mb-0 cursor-pointer"
+                            onClick={() => setShowStory(true)} // 👈 Open story on click
+                        />
+
+                        {/* Story Viewer (Modal / Overlay) */}
+                        {showStory && (
+                            <div className="fixed inset-0 bg-black bg-opacity-80 flex items-center justify-center z-50">
+                                <div className="relative w-full max-w-md bg-black rounded-lg">
+                                    {/* Close Button */}
+                                    <button
+                                    className="absolute top-2 right-2 text-white text-xl"
+                                    onClick={() => setShowStory(false)}
+                                    >
+                                    ✕
+                                    </button>
+
+                                    {/* User Story Component */}
+                                    <UserStory username={profileUser.username} />
+                                </div>
+                            </div>
+                        )}
+                        </div>
 
                     <div className="flex-1">
                         <div className="flex items-center justify-start space-x-4 mb-2">
                             <h2 className="text-2xl font-bold">{profileUser.name}</h2>
 
                             {currentUser && currentUser.username !== username && (
-                                <FollowButton
-                                    currentUsername={currentUser.username}
-                                    targetUsername={username}
-                                />
+                            <FollowButton
+                                currentUsername={currentUser.username}
+                                targetUsername={username}
+                            />
                             )}
+
+
+                             {currentUser && currentUser.username === username && (
+                                <button
+                                    onClick={() => navigate(`/update`)}
+                                    className="px-4 py-1 rounded-md text-sm font-medium border bg-gray-200 hover:bg-gray-100 text-black"
+                                >
+                                    Edit Profile
+                                </button>
+                            )}
+
 
                             <button
                                 onClick={() => navigate(`/chat/user/${profileUser.id}`)}

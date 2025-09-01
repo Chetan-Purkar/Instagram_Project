@@ -1,7 +1,6 @@
 package com.instagramclone.controller;
 
 import com.instagramclone.service.LikeService;
-import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
@@ -18,19 +17,15 @@ public class LikeController {
         this.likeService = likeService;
     }
 
+    /**
+     * Toggle like/unlike for a post
+     */
     @PostMapping("/toggle/{postId}")
-    public ResponseEntity<String> toggleLike(@PathVariable Long postId, @RequestParam String username) {
-        // Get the current authenticated user
-        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
-        String currentUsername = authentication.getName();
+    public ResponseEntity<String> toggleLike(@PathVariable Long postId) {
+        Authentication auth = SecurityContextHolder.getContext().getAuthentication();
+        String currentUsername = auth.getName(); // Always use authenticated user
 
-        // Ensure only current user can toggle their own likes
-        if (!currentUsername.equals(username)) {
-            return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
-                    .body("Unauthorized: You can only like/unlike as the logged-in user.");
-        }
-
-        boolean liked = likeService.toggleLike(postId, username);
+        boolean liked = likeService.toggleLike(postId, currentUsername);
         return ResponseEntity.ok(liked ? "Liked" : "Unliked");
     }
 }

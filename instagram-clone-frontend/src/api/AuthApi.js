@@ -25,3 +25,25 @@ export const login = async (authRequest) => {
         return null;
     }
 };
+
+export const logout = async () => {
+    try {
+        // Optional: call backend logout endpoint
+        await axios.post(`${API_URL}/logout`, {}, {
+            headers: {
+                Authorization: `Bearer ${localStorage.getItem("token")}`
+            },
+            withCredentials: true
+        });
+
+        // Clear localStorage
+        localStorage.removeItem("token");
+        localStorage.removeItem("username");
+        localStorage.removeItem("userId");
+
+        return true;
+    } catch (error) {
+        console.error("Logout error:", error);
+        return false;
+    }
+};

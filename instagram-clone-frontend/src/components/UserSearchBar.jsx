@@ -1,10 +1,12 @@
-import React, { useState, useEffect } from "react";
+import  { useState, useEffect } from "react";
+import { Link } from "react-router-dom";
 import { searchUsers } from "../api/UserApi"; // adjust path as needed
+
 
 const SearchUser = ({ query }) => {
     const [users, setUsers] = useState([]);  // Default to empty array
     const [loading, setLoading] = useState(false);
-
+   
     useEffect(() => {
         if (!query) {
             setUsers([]);
@@ -41,9 +43,13 @@ const SearchUser = ({ query }) => {
             {loading && <p className="text-gray-500">Searching...</p>}
             {!loading && users.length === 0 && query && <p>No users found.</p>}  {/* Check if users array has data */}
             <ul className="space-y-4">
-            {users.length > 0 ? (
-                users.map((user) => (
-                    <li key={user.id} className="flex items-center gap-4 border-b pb-2">
+                {users.length > 0 ? (
+                    users.map((user) => (
+                    <li key={user.id} className="bg-gray-700 rounded-md">
+                        <Link
+                        to={`/${user.username}`}
+                        className="flex items-center gap-4 p-2 hover:bg-gray-800 rounded-md transition cursor-pointer"
+                        >
                         <img
                             src={`data:image/jpeg;base64,${user.profileImage}`}
                             alt={user.username}
@@ -53,14 +59,16 @@ const SearchUser = ({ query }) => {
                             <p className="font-semibold text-gray-600">{user.username}</p>
                             <p className="text-sm text-gray-300">{user.name}</p>
                         </div>
+                        </Link>
                     </li>
-                ))
-            ) : (
-                !loading && query && <p>No users found.</p>
-            )}
-        </ul>
-
+                    ))
+                ) : (
+                    !loading &&
+                    query && <p className="text-gray-500">No users found.</p>
+                )}
+            </ul>
         </div>
+
     );
 };
 

@@ -1,7 +1,11 @@
 package com.instagramclone.service;
 
 import com.instagramclone.dto.UserDTO;
+import com.instagramclone.enums.AccountPrivacy;
+import com.instagramclone.enums.FollowStatus;
+import com.instagramclone.model.Follower;
 import com.instagramclone.model.User;
+import com.instagramclone.repository.FollowerRepository;
 import com.instagramclone.repository.UserRepository;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
@@ -17,9 +21,12 @@ import java.util.Optional;
 public class UserService {
 
     private final UserRepository userRepository;
+    private final FollowerRepository followerRepository;
 
-    public UserService(UserRepository userRepository) {
+    public UserService(UserRepository userRepository, FollowerRepository followerRepository) {
         this.userRepository = userRepository;
+        this.followerRepository = followerRepository;
+        
     }
 
     // ✅ Find user by username
@@ -64,6 +71,7 @@ public class UserService {
         return response;
     }
     public Optional<User> getUserByUsername(String username) {
+    	
         return userRepository.findByUsername(username); // Assumes findByUsername exists in UserRepository
     }
 
@@ -75,6 +83,36 @@ public class UserService {
     public List<User> searchUsers(String query) {
         return userRepository.searchUsersByUsernamePriority(query);
     }
+
+    public User updatePrivacy(String currentUsername, AccountPrivacy privacy) {
+        User user = userRepository.findByUsername(currentUsername)
+                .orElseThrow(() -> new RuntimeException("User not found"));
+        user.setAccountPrivacy(privacy);
+        return userRepository.save(user);
+    }
+
+
+    public boolean canViewProfile(User targetUser, User viewer) {
+        // Public account → anyone can view
+        if (targetUser.getAccountPrivacy() == AccountPrivacy.PUBLIC) {
+            return true;
+        }
+
+        // Private account
+        if (targetUser.getAccountPrivacy() == AccountPrivacy.PRIVATE) {
+            // User can view their own profile
+            if (targetUser.getId().equals(viewer.getId())) {
+                return true;
+            }
+
+            // Followers can view only if status is ACCEPTED
+            Optional<Follower> relation = followerRepository.findByFollowerAndFollowing(viewer, targetUser);
+            return relation.isPresent() && relation.get().getStatus() == FollowStatus.ACCEPTED;
+        }
+
+        return false;
+    }
+
 
 
    

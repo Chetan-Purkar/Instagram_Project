@@ -1,7 +1,6 @@
 package com.instagramclone.config;
 
 import com.instagramclone.dto.MessageDTO;
-import com.instagramclone.model.Message;
 import com.instagramclone.service.MessageService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.messaging.handler.annotation.MessageMapping;
@@ -21,14 +20,21 @@ public class WebSocketChatController {
 
     @MessageMapping("/chat.send")
     public void handleChatMessage(MessageDTO messageDTO) {
-        Long senderId = messageDTO.getSenderId(); // <--- Use directly
+        Long senderId = messageDTO.getSenderId();
+        Long receiverId = messageDTO.getReceiverId();
 
-        Message saved = messageService.sendMessage(senderId, messageDTO.getReceiverId(), messageDTO.getContent());
+        // ✅ Call service using the correct method signature
+        MessageDTO savedDto = messageService.sendMessage(
+                senderId,
+                receiverId,
+                messageDTO.getContent()
+        );
 
-        MessageDTO dto = new MessageDTO(saved);
-
-        messagingTemplate.convertAndSend("/topic/messages/" + senderId, dto);
-        messagingTemplate.convertAndSend("/topic/messages/" + messageDTO.getReceiverId(), dto);
+        // ✅ Notify both sender and receiver
+        messagingTemplate.convertAndSend("/topic/messages/" + senderId, savedDto);
+        messagingTemplate.convertAndSend("/topic/messages/" + receiverId, savedDto);
     }
+
+
 
 }

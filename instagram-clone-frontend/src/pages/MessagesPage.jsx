@@ -1,7 +1,7 @@
 
 //file: src/pages/MessagesPage.jsx
 import { useContext } from "react";
-import Messages from "../components/Messages";
+import Messages from "../components/massages/Messages";
 import { ThemeContext } from "../context/ThemeContext";
 
 const MessagesPage = () => {
