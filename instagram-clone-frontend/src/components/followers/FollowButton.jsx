@@ -9,14 +9,14 @@ const FollowButton = ({ currentUsername, targetUsername }) => {
   // ✅ useCallback so dependency is stable
   const fetchStatus = useCallback(async () => {
     try {
-      const data = await getFollowStatus(currentUsername, targetUsername);
+      const data = await getFollowStatus( targetUsername);
       setStatus(data.status);
     } catch (error) {
       console.error("Error fetching follow status:", error);
     } finally {
       setLoading(false);
     }
-  }, [currentUsername, targetUsername]);
+  }, [ targetUsername]);
 
   useEffect(() => {
     fetchStatus();
@@ -24,7 +24,7 @@ const FollowButton = ({ currentUsername, targetUsername }) => {
 
   const handleToggle = async () => {
     try {
-      await toggleFollow(currentUsername, targetUsername);
+      await toggleFollow( targetUsername);
 
       // Optimistic update
       if (status === "FOLLOW") setStatus("FOLLOWING");

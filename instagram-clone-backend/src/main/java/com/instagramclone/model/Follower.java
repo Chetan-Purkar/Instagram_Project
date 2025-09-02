@@ -78,7 +78,10 @@ public class Follower {
         return status;
     }
 
-    public void setStatus(FollowStatus status) {
-        this.status = status;
-    }
+	public void setStatus(FollowStatus status) {
+		this.status = status;
+	}
+
+
+   
 }

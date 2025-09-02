@@ -18,6 +18,7 @@ import TopNav from "./components/Navigation/TopNav";
 import BottomNav from "./components/Navigation/BottomNav";
 import CreateStory from "./components/Story/CreateStory";
 import SearchSong from "./components/song/SearchSong";
+import NotificationsPage from "./pages/Notifications";
 
 function App() {
   return (
@@ -47,6 +48,7 @@ function App() {
                 <Route path="/profile" element={<Profile />} />
                 <Route path="/create" element={<CreatePost />} />
                 <Route path="/createStory" element={<CreateStory />} />
+                <Route path="/notifications" element={<NotificationsPage />} />
                 <Route path="/search" element={<SearchPage />} />
                 <Route path="/update" element={<Update />} />
                 <Route path="/:username" element={<Profiles />} />

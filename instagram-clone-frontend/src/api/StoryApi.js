@@ -11,11 +11,12 @@ const getAuthHeader = (token) => ({
 });
 
 // ✅ Create a new story
-export const createStory = async ({ mediaFile, audioFile, caption, durationInHours }, token) => {
+export const createStory = async ({ mediaFile, audioName, audioFile, caption, durationInHours }, token) => {
   try {
     const formData = new FormData();
     formData.append("mediaFile", mediaFile);
     if (audioFile) formData.append("audioFile", audioFile);
+    if (audioName) formData.append("audioName", audioName);
     if (caption) formData.append("caption", caption);
     formData.append("durationInHours", durationInHours || 24);
 
@@ -148,27 +149,37 @@ const STORY_VIEW_URL = "http://localhost:8080/api/story-views";
 // Add a view for a story
 export const addStoryView = async (storyId, token) => {
   try {
-    const response = await axios.post(`${STORY_VIEW_URL}/${storyId}`, null, getAuthHeader(token));
+    const response = await axios.post(
+      `${STORY_VIEW_URL}/${storyId}`,
+      null,
+      { headers: { Authorization: `Bearer ${token}` } }
+    );
     return response.data;
   } catch (error) {
     throw error.response?.data || error.message || "Error adding story view";
   }
 };
 
+
 // Get all viewers of a story
 export const getStoryViews = async (storyId, token) => {
   try {
-    const response = await axios.get(`${STORY_VIEW_URL}/${storyId}/all`, getAuthHeader(token));
+    const response = await axios.get(
+      `${STORY_VIEW_URL}/${storyId}/all`,
+      { headers: { Authorization: `Bearer ${token}` } }
+    );
     return response.data;
   } catch (error) {
     throw error.response?.data || error.message || "Error fetching story views";
   }
 };
-
 // Get view count of a story
 export const getStoryViewCount = async (storyId, token) => {
   try {
-    const response = await axios.get(`${STORY_VIEW_URL}/${storyId}/count`, getAuthHeader(token));
+    const response = await axios.get(
+      `${STORY_VIEW_URL}/${storyId}/count`,
+      { headers: { Authorization: `Bearer ${token}` } }
+    );
     return response.data;
   } catch (error) {
     throw error.response?.data || error.message || "Error fetching story view count";

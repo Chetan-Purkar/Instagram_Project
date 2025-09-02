@@ -1,14 +1,13 @@
 package com.instagramclone.controller;
 
 import com.instagramclone.dto.FollowerDto;
+import com.instagramclone.model.Follower;
 import com.instagramclone.service.FollowerService;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
-import org.springframework.security.core.Authentication;
-import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.bind.annotation.*;
 
-import java.util.HashMap;
+import java.security.Principal;
 import java.util.List;
 import java.util.Map;
 
@@ -24,59 +23,62 @@ public class FollowerController {
     }
 
     // ✅ Follow / Unfollow or send follow request
-    @PostMapping("/toggle/{followingUsername}")
-    public ResponseEntity<String> toggleFollow(
-            @PathVariable String followingUsername,
-            @RequestParam String username
-    ) {
-        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
-        String currentUsername = authentication.getName();
+    @PostMapping("/toggle/{username}")
+    public ResponseEntity<Map<String, String>> toggleFollow(@PathVariable("username") String followingUsername,
+                                                            Principal principal) {
+        String followerUsername = principal.getName();
 
-        if (!currentUsername.equals(username)) {
-            return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
-                    .body("Unauthorized: You can only follow/unfollow as the logged-in user.");
+        if (followerUsername.equals(followingUsername)) {
+            return ResponseEntity.badRequest().body(Map.of("error", "❌ You cannot follow yourself controller"));
         }
 
-        String result = followerService.toggleFollow(username, followingUsername);
-        return ResponseEntity.ok(result);
+        String result = followerService.toggleFollow(followerUsername, followingUsername);
+        return ResponseEntity.ok(Map.of("message", result));
     }
-    
-    
- // ✅ Check follow status (FOLLOWING, PENDING, FOLLOW)
+
+
+    // ✅ Check follow status (FOLLOWING, PENDING, FOLLOW)
     @GetMapping("/status/{targetUsername}")
     public ResponseEntity<Map<String, String>> getFollowStatus(
             @PathVariable String targetUsername,
-            @RequestParam String currentUsername
+            Principal principal
     ) {
+        if (principal == null) {
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+                    .body(Map.of("error", "Unauthorized: Please log in."));
+        }
+
+        String currentUsername = principal.getName();
         String status = followerService.getFollowStatus(currentUsername, targetUsername);
 
-        Map<String, String> response = new HashMap<>();
-        response.put("status", status);
-
-        return ResponseEntity.ok(response);
+        return ResponseEntity.ok(Map.of("status", status));
     }
-
 
     // ✅ Check if current user follows someone
     @GetMapping("/is-following/{targetUsername}")
-    public ResponseEntity<Boolean> isFollowing(
+    public ResponseEntity<Map<String, Boolean>> isFollowing(
             @PathVariable String targetUsername,
-            @RequestParam String currentUsername
+            Principal principal
     ) {
-        boolean isFollowing = followerService.isFollowing(currentUsername, targetUsername);
-        return ResponseEntity.ok(isFollowing);
-    }
-    
+        if (principal == null) {
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+                    .body(Map.of("error", false));
+        }
 
+        String currentUsername = principal.getName();
+        boolean isFollowing = followerService.isFollowing(currentUsername, targetUsername);
+
+        return ResponseEntity.ok(Map.of("isFollowing", isFollowing));
+    }
 
     // ✅ Get list of followers
-    @GetMapping("/followers/{username}")
+    @GetMapping("/{username}/followers")
     public ResponseEntity<List<FollowerDto>> getFollowers(@PathVariable String username) {
         return ResponseEntity.ok(followerService.getFollowers(username));
     }
 
     // ✅ Get list of following
-    @GetMapping("/following/{username}")
+    @GetMapping("/{username}/following")
     public ResponseEntity<List<FollowerDto>> getFollowing(@PathVariable String username) {
         return ResponseEntity.ok(followerService.getFollowing(username));
     }
@@ -84,34 +86,64 @@ public class FollowerController {
     // ✅ Search followers
     @GetMapping("/search-followers")
     public ResponseEntity<List<FollowerDto>> searchFollowers(@RequestParam String username) {
-        List<FollowerDto> followers = followerService.searchFollowersByUsername(username);
-        return ResponseEntity.ok(followers);
+        return ResponseEntity.ok(followerService.searchFollowersByUsername(username));
     }
 
     // ✅ Search following
     @GetMapping("/search-following")
     public ResponseEntity<List<FollowerDto>> searchFollowing(@RequestParam String username) {
-        List<FollowerDto> following = followerService.searchFollowingByUsername(username);
-        return ResponseEntity.ok(following);
+        return ResponseEntity.ok(followerService.searchFollowingByUsername(username));
     }
 
     // ✅ Get pending follow requests (for private accounts)
-    @GetMapping("/requests/pending/{username}")
+    @GetMapping("/{username}/requests/pending")
     public ResponseEntity<List<FollowerDto>> getPendingRequests(@PathVariable String username) {
         return ResponseEntity.ok(followerService.getPendingRequests(username));
     }
 
     // ✅ Accept a follow request
     @PutMapping("/requests/{requestId}/accept")
-    public ResponseEntity<String> acceptFollowRequest(@PathVariable Long requestId) {
+    public ResponseEntity<Map<String, String>> acceptFollowRequest(
+            @PathVariable Long requestId,
+            Principal principal
+    ) {
+        if (principal == null) {
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+                    .body(Map.of("error", "Unauthorized: Please log in."));
+        }
+
+        Follower request = followerService.getFollowerById(requestId);
+
+        if (!request.getFollowing().getUsername().equals(principal.getName())) {
+            return ResponseEntity.status(HttpStatus.FORBIDDEN)
+                    .body(Map.of("error", "You cannot accept this request"));
+        }
+
         String result = followerService.acceptFollowRequest(requestId);
-        return ResponseEntity.ok(result);
+
+        return ResponseEntity.ok(Map.of("message", result));
     }
 
     // ✅ Reject a follow request
-    @DeleteMapping("/requests/{requestId}/reject")
-    public ResponseEntity<String> rejectFollowRequest(@PathVariable Long requestId) {
+    @PutMapping("/requests/{requestId}/reject")
+    public ResponseEntity<Map<String, String>> rejectFollowRequest(
+            @PathVariable Long requestId,
+            Principal principal
+    ) {
+        if (principal == null) {
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+                    .body(Map.of("error", "Unauthorized: Please log in."));
+        }
+
+        Follower request = followerService.getFollowerById(requestId);
+
+        if (!request.getFollowing().getUsername().equals(principal.getName())) {
+            return ResponseEntity.status(HttpStatus.FORBIDDEN)
+                    .body(Map.of("error", "You cannot reject this request"));
+        }
+
         String result = followerService.rejectFollowRequest(requestId);
-        return ResponseEntity.ok(result);
+
+        return ResponseEntity.ok(Map.of("message", result));
     }
 }

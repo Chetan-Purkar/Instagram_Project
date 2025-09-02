@@ -2,10 +2,14 @@ package com.instagramclone.service;
 
 import com.instagramclone.dto.StoryDTO;
 import com.instagramclone.enums.AccountPrivacy;
+import com.instagramclone.enums.FollowStatus;
+import com.instagramclone.model.Follower;
 import com.instagramclone.model.Story;
 import com.instagramclone.model.User;
+import com.instagramclone.repository.FollowerRepository;
 import com.instagramclone.repository.StoryRepository;
-import org.springframework.beans.factory.annotation.Autowired;
+import com.instagramclone.repository.UserRepository;
+
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDateTime;
@@ -16,105 +20,99 @@ import java.util.stream.Collectors;
 @Service
 public class StoryService {
 
-    @Autowired
-    private StoryRepository storyRepository;
+    private final FollowerRepository followerRepository;
+    private final UserRepository userRepository;
+    private final StoryRepository storyRepository;
+    private final UserService userService;
+    private final StoryViewService storyViewService;
 
-    @Autowired
-    private UserService userService;
-
-    /**
-     * Create a new story for the authenticated user
-     */
-    public StoryDTO createStory(Story story) {
-
-        // Set timestamps if not already set
-        if (story.getCreatedAt() == null) {
-            story.setCreatedAt(LocalDateTime.now());
-        }
-        if (story.getExpiresAt() == null) {
-            story.setExpiresAt(LocalDateTime.now().plusHours(24));
-        }
-
-        // Save the story
-        Story savedStory = storyRepository.save(story);
-
-        // Convert to DTO and return
-        return mapToDTO(savedStory, story.getUser().getId()); // passing owner ID as currentUserId
+    public StoryService(FollowerRepository followerRepository, UserRepository userRepository,
+                        StoryRepository storyRepository, UserService userService,
+                        StoryViewService storyViewService) {
+        this.followerRepository = followerRepository;
+        this.userRepository = userRepository;
+        this.storyRepository = storyRepository;
+        this.userService = userService;
+        this.storyViewService = storyViewService;
     }
 
-    /**
-     * Get all active stories of a specific user
-     */
-    public List<StoryDTO> getActiveStoriesByUser(String username) {
+
+    // --- Create Story ---
+    public StoryDTO createStory(Story story) {
+        if (story.getCreatedAt() == null) story.setCreatedAt(LocalDateTime.now());
+        if (story.getExpiresAt() == null) story.setExpiresAt(LocalDateTime.now().plusHours(24));
+
+        Story savedStory = storyRepository.save(story);
+        return mapToDTO(savedStory, story.getUser().getId());
+    }
+
+    // --- Get active stories of a user ---
+    public List<StoryDTO> getActiveStoriesByUser(String username, Long currentUserId) {
         User user = userService.findByUsername(username)
                 .orElseThrow(() -> new RuntimeException("User not found: " + username));
 
         return storyRepository.findByUserAndExpiresAtAfterOrderByCreatedAtDesc(user, LocalDateTime.now())
                 .stream()
-                .map(story -> mapToDTO(story, user.getId()))
-                .filter(dto -> dto != null) // remove nulls from privacy check
-                .collect(Collectors.toList());
-    }
-
-    /**
-     * Get all active stories globally
-     */
-    public List<StoryDTO> getAllActiveStories() {
-        return storyRepository.findByExpiresAtAfterOrderByCreatedAtDesc(LocalDateTime.now())
-                .stream()
-                .map(story -> mapToDTO(story, null)) // null means guest / no login
+                .map(story -> mapToDTO(story, currentUserId))
                 .filter(dto -> dto != null)
                 .collect(Collectors.toList());
     }
 
-    /**
-     * Get active stories of users followed by the given user
-     */
-    public List<StoryDTO> getStoriesOfFollowingUsers(String username) {
-        User user = userService.findByUsername(username)
-                .orElseThrow(() -> new RuntimeException("User not found: " + username));
+ // --- Get active stories of following users (public + accepted private) ---
+    public List<StoryDTO> getStoriesOfFollowingUsers(String currentUsername) {
+        User currentUser = userRepository.findByUsername(currentUsername)
+                .orElseThrow(() -> new RuntimeException("User not found"));
 
-        return storyRepository.findStoriesOfFollowingUsers(user.getId(), LocalDateTime.now())
+        // Get all users that the current user follows (accepted)
+        List<User> followingUsers = followerRepository.findByFollower(currentUser)
                 .stream()
-                .map(story -> mapToDTO(story, user.getId()))
+                .filter(f -> f.getStatus() == FollowStatus.ACCEPTED)
+                .map(Follower::getFollowing)
+                .collect(Collectors.toList());
+
+        // Also include all public users among them (just in case)
+        List<Story> stories = storyRepository.findByUserInAndExpiresAtAfter(followingUsers, LocalDateTime.now());
+
+        return stories.stream()
+                .map(story -> {
+                    User owner = story.getUser();
+                    // ✅ Allow if public or if current user follows them
+                    if (owner.getAccountPrivacy() == AccountPrivacy.PUBLIC 
+                        || followingUsers.contains(owner)
+                        || owner.getId().equals(currentUser.getId())) {
+                        return mapToDTO(story, currentUser.getId());
+                    }
+                    return null; // skip private accounts not followed
+                })
                 .filter(dto -> dto != null)
+                .sorted((s1, s2) -> s2.getCreatedAt().compareTo(s1.getCreatedAt())) // newest first
                 .collect(Collectors.toList());
     }
 
-    /**
-     * Delete expired stories
-     */
+
+    // --- Delete expired stories ---
     public void deleteExpiredStories() {
         storyRepository.deleteByExpiresAtBefore(LocalDateTime.now());
     }
 
-    /**
-     * Map Story entity -> DTO
-     */
+    // --- Mapper ---
     private StoryDTO mapToDTO(Story story, Long currentUserId) {
         User user = story.getUser();
 
-        // ✅ Privacy check
+        // Privacy check
         if (user.getAccountPrivacy() == AccountPrivacy.PRIVATE && currentUserId != null) {
             boolean isOwner = user.getId().equals(currentUserId);
             boolean isFollower = user.getFollowers().stream()
-                    .anyMatch(f -> f.getId().equals(currentUserId));
+                    .anyMatch(f -> f.getFollower().getId().equals(currentUserId)); // fixed
 
-            if (!isOwner && !isFollower) {
-                return null; // 🚫 Not allowed
-            }
+            if (!isOwner && !isFollower) return null;
         }
 
-        String profileImageBase64 = toBase64(user.getProfileImage());
-        String mediaBase64 = toBase64(story.getMediaData());
-        String audioBase64 = toBase64(story.getAudioData());
-
-        // ✅ Populate DTO with setters
         StoryDTO dto = new StoryDTO();
         dto.setId(story.getId());
-        dto.setMediaData(mediaBase64);
+        dto.setMediaData(toBase64(story.getMediaData()));
         dto.setMediaType(story.getMediaType());
-        dto.setAudioData(audioBase64);
+        dto.setAudioData(toBase64(story.getAudioData()));
         dto.setAudioType(story.getAudioType());
         dto.setAudioName(story.getAudioName());
         dto.setCaption(story.getCaption());
@@ -122,8 +120,11 @@ public class StoryService {
         dto.setExpiresAt(story.getExpiresAt());
         dto.setUserId(user.getId());
         dto.setUsername(user.getUsername());
-        dto.setProfileImage(profileImageBase64);
+        dto.setProfileImage(toBase64(user.getProfileImage()));
+        dto.setPrivacy(story.getPrivacy());
 
+        dto.setViews(storyViewService.getViewsByStory(story.getId()));
+        
         return dto;
     }
 

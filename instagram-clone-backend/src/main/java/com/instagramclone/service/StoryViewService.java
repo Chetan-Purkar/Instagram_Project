@@ -19,12 +19,18 @@ public class StoryViewService {
     private final StoryRepository storyRepository;
     private final UserRepository userRepository;
 
-    public StoryViewService(StoryViewRepository storyViewRepository, StoryRepository storyRepository, UserRepository userRepository) {
+    public StoryViewService(StoryViewRepository storyViewRepository,
+                            StoryRepository storyRepository,
+                            UserRepository userRepository) {
         this.storyViewRepository = storyViewRepository;
         this.storyRepository = storyRepository;
         this.userRepository = userRepository;
     }
 
+    /**
+     * Add a view for a story by a user.
+     * If the user has already viewed the story, returns the existing view.
+     */
     public StoryViewDTO addView(Long storyId, String username) {
         Story story = storyRepository.findById(storyId)
                 .orElseThrow(() -> new RuntimeException("Story not found with id: " + storyId));
@@ -32,37 +38,34 @@ public class StoryViewService {
         User viewer = userRepository.findByUsername(username)
                 .orElseThrow(() -> new RuntimeException("User not found: " + username));
 
-        // Fetch all existing views by this user for the story
         List<StoryView> existingViews = storyViewRepository.findByStoryAndViewer(story, viewer);
-
         if (!existingViews.isEmpty()) {
-            // Return first existing view (ignore duplicates)
             return mapToDTO(existingViews.get(0));
         }
 
-        // Save new view
-        StoryView storyView = new StoryView();
-        storyView.setStory(story);
-        storyView.setViewer(viewer);
-
+        // ✅ Use constructor that auto-sets viewedAt
+        StoryView storyView = new StoryView(story, viewer);
         StoryView savedView = storyViewRepository.save(storyView);
         return mapToDTO(savedView);
     }
 
-    
-    // ✅ Get all viewers for a story
+
+    /**
+     * Get all viewers for a story
+     */
     public List<StoryViewDTO> getViewsByStory(Long storyId) {
         Story story = storyRepository.findById(storyId)
                 .orElseThrow(() -> new RuntimeException("Story not found with id: " + storyId));
 
-        List<StoryView> views = storyViewRepository.findByStory(story);
-
-        return views.stream()
+        return storyViewRepository.findByStory(story)
+                .stream()
                 .map(this::mapToDTO)
                 .collect(Collectors.toList());
     }
 
-    // ✅ Count views for a story
+    /**
+     * Count total views for a story
+     */
     public long countViews(Long storyId) {
         Story story = storyRepository.findById(storyId)
                 .orElseThrow(() -> new RuntimeException("Story not found with id: " + storyId));
@@ -70,25 +73,25 @@ public class StoryViewService {
         return storyViewRepository.countByStory(story);
     }
 
-    // 🔄 Mapper: StoryView → StoryViewDTO
+    /**
+     * Map StoryView entity to StoryViewDTO
+     */
     private StoryViewDTO mapToDTO(StoryView storyView) {
         return new StoryViewDTO(
                 storyView.getId(),
                 storyView.getStory().getId(),
                 storyView.getViewer().getId(),
                 storyView.getViewer().getUsername(),
-                encodeProfileImage(storyView.getViewer().getProfileImage()), // convert byte[] to Base64 String
+                encodeProfileImage(storyView.getViewer().getProfileImage()),
                 storyView.getViewedAt()
         );
     }
 
-    // 🖼 Convert profile image (byte[]) to Base64 String
+    /**
+     * Convert profile image byte[] to Base64 string
+     */
     private String encodeProfileImage(byte[] profileImage) {
-        if (profileImage != null) {
-            return java.util.Base64.getEncoder().encodeToString(profileImage);
-        }
-        return null;
+        return (profileImage == null || profileImage.length == 0) ? null
+                : java.util.Base64.getEncoder().encodeToString(profileImage);
     }
-
-	
 }

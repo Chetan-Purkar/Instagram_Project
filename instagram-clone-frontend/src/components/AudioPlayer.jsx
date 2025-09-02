@@ -4,26 +4,27 @@ const AudioPlayer = ({ audioUrl, isActive, muted, setMuted }) => {
   const audioRef = useRef(null);
 
   useEffect(() => {
-    if (!audioRef.current) return;
+    const audio = audioRef.current;
+    if (!audio) return;
+
+    audio.muted = muted;
+    audio.loop = true;
 
     if (isActive) {
-      audioRef.current.muted = muted;
-      audioRef.current.loop = true;
-      audioRef.current.play().catch(() => {});
+      audio.play().catch((err) => {
+        console.log("Audio play failed:", err);
+      });
     } else {
-      audioRef.current.pause();
+      audio.pause();
     }
-  }, [isActive, muted]);
+  }, [isActive, muted, audioUrl]);
 
   return (
-    <div className="flex items-center justify-end w-full">
-      {/* Keep audio hidden but functional */}
+    <div className="flex items-center justify-center w-full">
       <audio ref={audioRef} src={audioUrl} playsInline className="hidden" />
-
-      {/* Mute/Unmute button aligned to end (right) */}
       <button
         onClick={() => setMuted((prev) => !prev)}
-        className="text-blue-500 mr-2 "
+        className="text-white ml-2"
       >
         {muted ? "🔇" : "🔊"}
       </button>

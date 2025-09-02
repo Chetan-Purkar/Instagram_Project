@@ -5,6 +5,7 @@ import SearchSong from "../song/SearchSong";
 const CreateStory = () => {
   const [mediaFile, setMediaFile] = useState(null);
   const [audioFile, setAudioFile] = useState(null);
+  const [audioName, setAudioName] = useState("");
   const [caption, setCaption] = useState("");
   const [duration, setDuration] = useState(24);
   const [loading, setLoading] = useState(false);
@@ -28,7 +29,7 @@ const CreateStory = () => {
     try {
       const token = localStorage.getItem("token"); // JWT token from localStorage
       const storyData = await createStory(
-        { mediaFile, audioFile, caption, durationInHours: duration },
+        { mediaFile, audioFile, audioName, caption, durationInHours: duration },
         token
       );
 
@@ -38,6 +39,7 @@ const CreateStory = () => {
       // Reset form
       setMediaFile(null);
       setAudioFile(null);
+      setAudioName("");
       setCaption("");
       setDuration(24);
       setPreview(null);
@@ -48,10 +50,18 @@ const CreateStory = () => {
     setLoading(false);
   };
 
+
+
   return (
     <div className="max-w-md mx-auto mt-4 p-6 bg-gray-900 text-white shadow-lg rounded-lg">
       <h2 className="text-xl font-bold mb-4 text-center">Create a Story</h2>
-      <form onSubmit={handleSubmit} className="space-y-4">
+      <form onSubmit={handleSubmit} onKeyDown={(e) => {
+          if (e.key === "Enter") {
+            e.preventDefault(); // stops Enter from submitting the form
+          }
+        }} className="space-y-5"
+        >
+
         {/* Media Upload */}
         <div>
           <label className="block text-sm font-medium mb-1">Media (Image/Video)</label>
@@ -91,7 +101,7 @@ const CreateStory = () => {
             onAddSong={(songData) => {
               // receive trimmed song as File
               setAudioFile(songData.file);
-              setCaption(songData.name); // optional: set caption to song name
+              setAudioName(songData.name); // optional: set audio name to song name
               alert(`🎵 Added trimmed audio: ${songData.name}`);
             }}
           />

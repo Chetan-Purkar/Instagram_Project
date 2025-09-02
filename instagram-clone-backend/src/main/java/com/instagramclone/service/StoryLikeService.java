@@ -1,6 +1,7 @@
 package com.instagramclone.service;
 
 import com.instagramclone.dto.StoryLikeDTO;
+import com.instagramclone.enums.NotificationType;
 import com.instagramclone.model.Story;
 import com.instagramclone.model.StoryLike;
 import com.instagramclone.model.User;
@@ -20,11 +21,16 @@ public class StoryLikeService {
     private final StoryLikeRepository storyLikeRepository;
     private final StoryRepository storyRepository;
     private final UserRepository userRepository;
+    private final NotificationService notificationService; // ✅ inject notification service
 
-    public StoryLikeService(StoryLikeRepository storyLikeRepository, StoryRepository storyRepository, UserRepository userRepository) {
+    public StoryLikeService(StoryLikeRepository storyLikeRepository, 
+                            StoryRepository storyRepository, 
+                            UserRepository userRepository,
+                            NotificationService notificationService) {
         this.storyLikeRepository = storyLikeRepository;
         this.storyRepository = storyRepository;
         this.userRepository = userRepository;
+        this.notificationService = notificationService;
     }
 
     // ✅ Like a story
@@ -46,6 +52,18 @@ public class StoryLikeService {
         storyLike.setLikedAt(LocalDateTime.now());
 
         StoryLike savedLike = storyLikeRepository.save(storyLike);
+
+        // ✅ Send notification to the story owner (if not liking own story)
+        if (!story.getUser().getId().equals(userId)) {
+            notificationService.createNotification(
+                    user,                      // sender = the one who liked
+                    story.getUser(),            // receiver = story owner
+                    NotificationType.STORY_LIKE, // custom enum for story likes
+                    user.getUsername() + " liked your story", // content
+                    null                        // relatedFollower = null
+            );
+        }
+
         return convertToDTO(savedLike);
     }
 
@@ -60,8 +78,8 @@ public class StoryLikeService {
         storyLikeRepository.findByStoryAndUser(story, user)
                 .ifPresent(storyLikeRepository::delete);
     }
-    
- // ✅ Get all likes for a story
+
+    // ✅ Get all likes for a story
     public List<StoryLikeDTO> getLikesForStory(Long storyId) {
         Story story = storyRepository.findById(storyId)
                 .orElseThrow(() -> new RuntimeException("Story not found"));
@@ -71,8 +89,6 @@ public class StoryLikeService {
                 .map(this::convertToDTO)
                 .collect(Collectors.toList());
     }
-
-
 
     // ✅ Count likes
     public long countLikes(Long storyId) {

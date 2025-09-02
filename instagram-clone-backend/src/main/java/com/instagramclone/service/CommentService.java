@@ -1,6 +1,7 @@
 package com.instagramclone.service;
 
 import com.instagramclone.dto.CommentDTO;
+import com.instagramclone.enums.NotificationType;
 import com.instagramclone.model.Comment;
 import com.instagramclone.model.Post;
 import com.instagramclone.model.User;
@@ -21,13 +22,16 @@ public class CommentService {
     private final CommentRepository commentRepository;
     private final PostRepository postRepository;
     private final UserRepository userRepository;
+    private final NotificationService notificationService;
 
     public CommentService(CommentRepository commentRepository,
                           PostRepository postRepository,
-                          UserRepository userRepository) {
+                          UserRepository userRepository,
+                          NotificationService notificationService) {
         this.commentRepository = commentRepository;
         this.postRepository = postRepository;
         this.userRepository = userRepository;
+        this.notificationService = notificationService;
     }
 
     // ✅ Fetch comments for a post
@@ -38,9 +42,9 @@ public class CommentService {
                 .collect(Collectors.toList());
     }
 
-    // ✅ Add a new comment
+    // ✅ Add a new comment and send notification to post owner
     public Comment addComment(Long postId, String username, String text) {
-        User user = userRepository.findByUsername(username)
+        User commenter = userRepository.findByUsername(username)
                 .orElseThrow(() -> new RuntimeException("User not found"));
 
         Post post = postRepository.findById(postId)
@@ -48,10 +52,19 @@ public class CommentService {
 
         Comment comment = new Comment();
         comment.setText(text);
-        comment.setUser(user);
+        comment.setUser(commenter);
         comment.setPost(post);
 
-        return commentRepository.save(comment);
+        Comment savedComment = commentRepository.save(comment);
+
+        // 🔔 Send notification to post owner (if not commenting on own post)
+        User postOwner = post.getUser();
+        if (!commenter.getId().equals(postOwner.getId())) {
+            String content = commenter.getUsername() + " commented on your post";
+            notificationService.createNotification(commenter, postOwner, NotificationType.POST_COMMENT, content, null);
+        }
+
+        return savedComment;
     }
 
     // ✅ Get comment by ID

@@ -20,6 +20,8 @@ public interface StoryRepository extends JpaRepository<Story, Long> {
 
     // Fetch only active stories of a specific user (not expired)
     List<Story> findByUserAndExpiresAtAfterOrderByCreatedAtDesc(User user, LocalDateTime now);
+    
+    List<Story> findByUserInAndExpiresAtAfter(List<User> users, LocalDateTime now);
 
     // Fetch all active stories
     List<Story> findByExpiresAtAfterOrderByCreatedAtDesc(LocalDateTime now);

@@ -3,8 +3,8 @@ import moment from "moment";
 import { getMyStories } from "../../api/StoryApi";
 import StoryLikes from "./StoryLikes";
 import StoryReplies from "./StoryReplies";
-import StoryViews from "./StoryViews"
-
+import StoryViews from "./StoryViews";
+import AudioPlayer from "../AudioPlayer";
 import { X, ChevronLeft, ChevronRight } from "lucide-react";
 
 const MyStories = () => {
@@ -12,8 +12,9 @@ const MyStories = () => {
   const [loading, setLoading] = useState(true);
   const [viewing, setViewing] = useState(false);
   const [currentIndex, setCurrentIndex] = useState(0);
+  const [muted, setMuted] = useState(false); // global mute for audio
 
-  // ✅ Fetch my stories
+  // Fetch my stories
   useEffect(() => {
     const fetchStories = async () => {
       setLoading(true);
@@ -44,12 +45,10 @@ const MyStories = () => {
   }, [currentIndex, stories.length, closeModal]);
 
   const prevStory = useCallback(() => {
-    if (currentIndex > 0) {
-      setCurrentIndex((i) => i - 1);
-    }
+    if (currentIndex > 0) setCurrentIndex((i) => i - 1);
   }, [currentIndex]);
 
-  // ✅ Keyboard navigation
+  // Keyboard navigation
   useEffect(() => {
     const handleKey = (e) => {
       if (e.key === "ArrowRight") nextStory();
@@ -63,48 +62,46 @@ const MyStories = () => {
   if (loading) return <p className="p-4">Loading your stories...</p>;
 
   return (
-    <div className="">
-      {/* ✅ My story avatar (like FollowingStories style) */}
+    <div>
+      {/* My story avatar */}
       <div
-          className="flex flex-col items-center cursor-pointer"
-          onClick={() => {
-            if (stories.length > 0) {
-              setViewing(true);
-              setCurrentIndex(0);
-            }
-          }}
-        >
-          <div className="w-20 h-20 rounded-full border-2 border-blue-500 p-1">
-            {stories.length > 0 ? (
-              stories[0].mediaType.startsWith("image") ? (
-                <img
-                  src={`data:${stories[0].mediaType};base64,${stories[0].mediaData}`}
-                  alt="My story"
-                  className="w-full h-full rounded-full object-cover"
-                />
-              ) : (
-                <video
-                  src={`data:${stories[0].mediaType};base64,${stories[0].mediaData}`}
-                  className="w-full h-full rounded-full object-cover"
-                />
-              )
-            ) : (
+        className="flex flex-col items-center cursor-pointer"
+        onClick={() => {
+          if (stories.length > 0) {
+            setViewing(true);
+            setCurrentIndex(0);
+          }
+        }}
+      >
+        <div className="w-20 h-20 rounded-full border-2 border-blue-500 p-1">
+          {stories.length > 0 ? (
+            stories[0].mediaType.startsWith("image") ? (
               <img
-                src={localStorage.getItem("profileImage") || "/default-avatar.png"}
-                alt="Profile"
+                src={`data:${stories[0].mediaType};base64,${stories[0].mediaData}`}
+                alt="My story"
                 className="w-full h-full rounded-full object-cover"
               />
-            )}
-          </div>
-          <span className="text-xs mt-1">Your Story</span>
+            ) : (
+              <video
+                src={`data:${stories[0].mediaType};base64,${stories[0].mediaData}`}
+                className="w-full h-full rounded-full object-cover"
+              />
+            )
+          ) : (
+            <img
+              src={stories.ProfileImage || "/default-avatar.png"}
+              alt="Profile"
+              className="w-full h-full rounded-full object-cover"
+            />
+          )}
         </div>
+        <span className="text-xs mt-1">Your Story</span>
+      </div>
 
-
-      {/* ✅ Fullscreen modal like FollowingStories */}
+      {/* Fullscreen modal */}
       {viewing && stories[currentIndex] && (
         <div className="fixed inset-0 bg-black z-50 flex justify-center items-center">
           <div className="relative w-full h-full flex items-center justify-center">
-            {/* Frame */}
             <div className="relative bg-black w-full max-w-[420px] h-full flex flex-col">
               {/* Close button */}
               <button
@@ -114,24 +111,31 @@ const MyStories = () => {
                 <X size={28} />
               </button>
 
-              {/* Story content */}
               <div className="flex-1 flex items-center justify-center relative">
+                {/* Profile info */}
                 <div className="absolute top-4 left-4 flex items-center space-x-2 text-white z-10">
                   <img
-                    src={stories[currentIndex].userProfileImage || "/default-avatar.png"}
+                    src={stories.ProfileImage || "/default-avatar.png"}
                     alt="profile"
                     className="w-8 h-8 rounded-full border"
                   />
                   <div>
-                    <p className="font-semibold text-sm">
-                      {stories[currentIndex].username}
-                    </p>
+                    <div className="flex items-center space-x-2">
+                      <p className="font-semibold text-sm">
+                        {stories[currentIndex].username}
+                      </p>
+                      <p className="text-xs opacity-80">●</p>
+                      <p className="text-xs opacity-80">
+                        {stories[currentIndex].audioName || ""}
+                      </p>
+                    </div>
                     <p className="text-xs opacity-80">
                       {moment(stories[currentIndex].createdAt).fromNow()}
                     </p>
                   </div>
                 </div>
 
+                {/* Media */}
                 {stories[currentIndex].mediaType.startsWith("image") ? (
                   <img
                     src={`data:${stories[currentIndex].mediaType};base64,${stories[currentIndex].mediaData}`}
@@ -142,8 +146,22 @@ const MyStories = () => {
                   <video
                     src={`data:${stories[currentIndex].mediaType};base64,${stories[currentIndex].mediaData}`}
                     autoPlay
+                    controls
                     className="w-full h-full object-contain bg-black"
                   />
+                )}
+
+                {/* Audio */}
+                {stories[currentIndex].audioData && (
+                  <div className="absolute top-4 right-14 -translate-x-1/2 z-50">
+                    <AudioPlayer
+                      audioUrl={`data:${stories[currentIndex].audioType};base64,${stories[currentIndex].audioData}`}
+                      isActive={viewing} // only active when modal is open
+                      muted={muted}
+                      setMuted={setMuted}
+                    />
+
+                  </div>
                 )}
 
                 {/* Caption */}
@@ -154,10 +172,10 @@ const MyStories = () => {
                 )}
 
                 {/* Likes & Replies */}
-                <div className="absolute bottom-0 left-0 right-0 flex flex-row justify-between items-center p-4 bg-black bg-opacity-60">
-                    <StoryLikes storyId={stories[currentIndex].id} />
-                    <StoryReplies storyId={stories[currentIndex].id} />
-                    <StoryViews storyId={stories[currentIndex].id} /> 
+                <div className="absolute bottom-0 left-0 right-0 flex justify-between items-center p-4 bg-black bg-opacity-60">
+                  <StoryLikes storyId={stories[currentIndex].id} />
+                  <StoryReplies storyId={stories[currentIndex].id} />
+                  <StoryViews storyId={stories[currentIndex].id} />
                 </div>
               </div>
             </div>

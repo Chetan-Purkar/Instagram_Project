@@ -63,3 +63,16 @@ export function sendWebSocketMessage(messageDTO) {
   }
 }
 
+export function subscribeNotifications(currentUserId, onNotificationReceived) {
+  if (!stompClient || !stompClient.connected) {
+    console.warn("WebSocket not connected. Cannot subscribe to notifications.");
+    return;
+  }
+
+  stompClient.subscribe(`/topic/notifications/${currentUserId}`, (message) => {
+    const parsed = JSON.parse(message.body);
+    onNotificationReceived(parsed);
+  });
+}
+
+

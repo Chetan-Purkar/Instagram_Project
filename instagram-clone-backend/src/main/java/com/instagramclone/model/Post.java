@@ -5,11 +5,7 @@ import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
 
-/**
- * Represents a Post created by a user in the Instagram clone.
- * A Post may contain media (image/video), optional audio, a caption,
- * and is associated with comments and likes.
- */
+
 @Entity
 @Table(name = "posts")
 public class Post {

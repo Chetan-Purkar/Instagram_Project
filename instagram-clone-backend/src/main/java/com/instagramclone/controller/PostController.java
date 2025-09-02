@@ -6,9 +6,10 @@ import com.instagramclone.model.User;
 import com.instagramclone.service.PostService;
 import com.instagramclone.service.UserService;
 
-import io.jsonwebtoken.io.IOException;
-
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageImpl;
+import org.springframework.data.domain.PageRequest;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -29,7 +30,7 @@ public class PostController {
     public PostController(PostService postService) {
         this.postService = postService;
     }
-    
+
     @Autowired
     private UserService userService;
 
@@ -41,17 +42,16 @@ public class PostController {
             @RequestParam(value = "audioData", required = false) MultipartFile audioFile,
             @RequestParam String caption,
             @RequestParam String audioName,
-            Principal principal) throws java.io.IOException {
-
+            Principal principal) {
         try {
             // Ensure user is authenticated
             String username = principal.getName();
             User user = userService.findByUsername(username)
-                    .orElseThrow(() -> new RuntimeException(" post User not found: " + username));
+                    .orElseThrow(() -> new RuntimeException("Post User not found: " + username));
 
             // Create new Post object
             Post post = new Post();
-            post.setMediaData(mediaFile.getBytes()); // ✅ IOException handled in catch block
+            post.setMediaData(mediaFile.getBytes());
             post.setMediaType(mediaType);
             post.setCaption(caption);
             post.setUser(user);
@@ -59,8 +59,8 @@ public class PostController {
 
             // Handle optional audio file
             if (audioFile != null && !audioFile.isEmpty()) {
-            	post.setAudioName(audioName);
-                post.setAudioData(audioFile.getBytes()); // ✅ IOException handled in catch block
+                post.setAudioName(audioName);
+                post.setAudioData(audioFile.getBytes());
                 post.setAudioType(audioFile.getContentType());
             }
 
@@ -68,49 +68,48 @@ public class PostController {
             Post savedPost = postService.createPost(post);
             return ResponseEntity.ok(new PostDTO(savedPost, username));
 
-        } catch (IOException e) {
+        } catch (Exception e) {
+            e.printStackTrace();
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("Error processing media files");
-        } catch (RuntimeException e) {
-            return ResponseEntity.badRequest().body(e.getMessage());
         }
     }
 
-
+    // Get paginated posts
     @GetMapping("/all")
-    public ResponseEntity<List<PostDTO>> getAllPosts(Principal principal) {
+    public ResponseEntity<Page<PostDTO>> getAllPosts(
+            Principal principal,
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "10") int size) {
+
         try {
-            String currentUsername = principal.getName(); // ✅ Logged-in user
-            
-            
+            String currentUsername = principal.getName(); // logged-in user
 
-            List<Post> posts = postService.getAllPosts();
+            Page<Post> postsPage = postService.getAllPosts(page, size);
 
-            if (posts.isEmpty()) {
+            if (postsPage.isEmpty()) {
                 return ResponseEntity.noContent().build();
             }
 
-            List<PostDTO> postDTOs = posts.stream()
-                .filter(post -> post != null && post.getUser() != null)
-                .map(post -> {
-                    @SuppressWarnings("unused")
-					boolean liked = false;
+            List<PostDTO> postDTOs = postsPage.stream()
+                    .map(post -> {
+                        @SuppressWarnings("unused")
+						boolean liked = false;
+                        if (currentUsername != null && post.getLikes() != null) {
+                            liked = post.getLikes().stream()
+                                    .anyMatch(like -> like.getUser().getUsername().equals(currentUsername));
+                        }
+                        return new PostDTO(post, currentUsername);
+                    })
+                    .collect(Collectors.toList());
 
-                    if (currentUsername != null && post.getLikes() != null) {
-                        liked = post.getLikes().stream()
-                                .anyMatch(like -> like.getUser().getUsername().equals(currentUsername));
-                    }
-            
-                    return new PostDTO(post, currentUsername); // ✅ DTO includes liked status
-                })
-                .collect(Collectors.toList());
+            Page<PostDTO> dtoPage = new PageImpl<>(postDTOs, PageRequest.of(page, size), postsPage.getTotalElements());
+            return ResponseEntity.ok(dtoPage);
 
-            return ResponseEntity.ok(postDTOs);
         } catch (Exception e) {
             e.printStackTrace();
             return ResponseEntity.internalServerError().build();
         }
     }
-
 
     // Delete a post by ID
     @DeleteMapping("/delete/{postId}")

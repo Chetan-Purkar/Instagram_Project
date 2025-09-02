@@ -38,6 +38,7 @@ public class StoryController {
             @RequestParam("mediaFile") MultipartFile mediaFile,
             @RequestParam(required = false) MultipartFile audioFile,
             @RequestParam(required = false) String caption,
+            @RequestParam(required = false) String audioName,
             @RequestParam(defaultValue = "24") int durationInHours,
             @RequestParam(defaultValue = "PUBLIC") StoryPrivacy privacy, 
             Principal principal) {
@@ -61,6 +62,7 @@ public class StoryController {
             if (audioFile != null && !audioFile.isEmpty()) {
                 story.setAudioData(audioFile.getBytes());
                 story.setAudioType(audioFile.getContentType());
+                story.setAudioName(audioName);
             }
 
             // Save and return DTO
@@ -76,14 +78,14 @@ public class StoryController {
     }
 
 
-    /**
-     * Get all active stories (global)
-     */
-    @GetMapping("/all")
-    public ResponseEntity<List<StoryDTO>> getAllStories() {
-        List<StoryDTO> stories = storyService.getAllActiveStories();
-        return ResponseEntity.ok(stories);
-    }
+//    /**
+//     * Get all active stories (global)
+//     */
+//    @GetMapping("/all")
+//    public ResponseEntity<List<StoryDTO>> getAllStories() {
+//        List<StoryDTO> stories = storyService.getAllActiveStories();
+//        return ResponseEntity.ok(stories);
+//    }
 
 
 	/**
@@ -91,7 +93,10 @@ public class StoryController {
      */
     @GetMapping("/me")
     public ResponseEntity<List<StoryDTO>> getMyStories(@AuthenticationPrincipal UserDetails principal) {
-        List<StoryDTO> stories = storyService.getActiveStoriesByUser(principal.getUsername());
+        User currentUser = userService.findByUsername(principal.getUsername())
+                .orElseThrow(() -> new RuntimeException("User not found: " + principal.getUsername()));
+
+        List<StoryDTO> stories = storyService.getActiveStoriesByUser(currentUser.getUsername(), currentUser.getId());
         return ResponseEntity.ok(stories);
     }
 
@@ -99,21 +104,28 @@ public class StoryController {
      * Get active stories of a specific user by username
      */
     @GetMapping("/user/{username}")
-    public ResponseEntity<List<StoryDTO>> getUserStories(@PathVariable String username) {
-        List<StoryDTO> stories = storyService.getActiveStoriesByUser(username);
+    public ResponseEntity<List<StoryDTO>> getUserStories(@PathVariable String username,
+                                                         @AuthenticationPrincipal UserDetails principal) {
+        Long currentUserId = null;
+        if (principal != null) {
+            User currentUser = userService.findByUsername(principal.getUsername())
+                    .orElseThrow(() -> new RuntimeException("User not found: " + principal.getUsername()));
+            currentUserId = currentUser.getId();
+        }
+
+        List<StoryDTO> stories = storyService.getActiveStoriesByUser(username, currentUserId);
         return ResponseEntity.ok(stories);
     }
 
    
 
-    /**
-     * Get active stories of users followed by the authenticated user
-     */
     @GetMapping("/following")
     public ResponseEntity<List<StoryDTO>> getFollowingStories(@AuthenticationPrincipal UserDetails principal) {
         List<StoryDTO> stories = storyService.getStoriesOfFollowingUsers(principal.getUsername());
         return ResponseEntity.ok(stories);
     }
+
+
 
     /**
      * Cleanup expired stories

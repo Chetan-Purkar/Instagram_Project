@@ -4,7 +4,7 @@ import { getUserStories } from "../../api/StoryApi";
 import StoryLikes from "./StoryLikes";
 import StoryReplies from "./StoryReplies";
 import StoryViews from "./StoryViews";
-
+import AudioPlayer from "../AudioPlayer";
 import { X, ChevronLeft, ChevronRight } from "lucide-react";
 
 const UserStory = ({ username }) => {
@@ -12,8 +12,9 @@ const UserStory = ({ username }) => {
   const [loading, setLoading] = useState(true);
   const [viewing, setViewing] = useState(false);
   const [currentIndex, setCurrentIndex] = useState(0);
+  const [muted, setMuted] = useState(false); // global mute for audio
 
-  // ✅ Fetch stories of a specific user
+  // Fetch stories of a specific user
   useEffect(() => {
     const fetchStories = async () => {
       setLoading(true);
@@ -44,12 +45,10 @@ const UserStory = ({ username }) => {
   }, [currentIndex, stories.length, closeModal]);
 
   const prevStory = useCallback(() => {
-    if (currentIndex > 0) {
-      setCurrentIndex((i) => i - 1);
-    }
+    if (currentIndex > 0) setCurrentIndex((i) => i - 1);
   }, [currentIndex]);
 
-  // ✅ Keyboard navigation
+  // Keyboard navigation
   useEffect(() => {
     const handleKey = (e) => {
       if (e.key === "ArrowRight") nextStory();
@@ -66,7 +65,7 @@ const UserStory = ({ username }) => {
 
   return (
     <div>
-      {/* ✅ Story avatar */}
+      {/* Story avatar */}
       <div
         className="flex flex-col items-center cursor-pointer"
         onClick={() => {
@@ -91,11 +90,10 @@ const UserStory = ({ username }) => {
         <span className="text-xs mt-1">{username}</span>
       </div>
 
-      {/* ✅ Fullscreen Modal */}
+      {/* Fullscreen Modal */}
       {viewing && stories[currentIndex] && (
         <div className="fixed inset-0 bg-black z-50 flex justify-center items-center">
           <div className="relative w-full h-full flex items-center justify-center">
-            {/* Story frame */}
             <div className="relative bg-black w-full max-w-[420px] h-full flex flex-col">
               {/* Close button */}
               <button
@@ -105,7 +103,6 @@ const UserStory = ({ username }) => {
                 <X size={28} />
               </button>
 
-              {/* Story Content */}
               <div className="flex-1 flex items-center justify-center relative">
                 {/* Header */}
                 <div className="absolute top-4 left-4 flex items-center space-x-2 text-white z-10">
@@ -115,9 +112,15 @@ const UserStory = ({ username }) => {
                     className="w-8 h-8 rounded-full border"
                   />
                   <div>
-                    <p className="font-semibold text-sm">
-                      {stories[currentIndex].username}
-                    </p>
+                    <div className="flex items-center space-x-2">
+                      <p className="font-semibold text-sm">
+                        {stories[currentIndex].username}
+                      </p>
+                      <p className="text-xs opacity-80">●</p>
+                      <p className="text-xs opacity-80">
+                        {stories[currentIndex].audioName || ""}
+                      </p>
+                    </div>
                     <p className="text-xs opacity-80">
                       {moment(stories[currentIndex].createdAt).fromNow()}
                     </p>
@@ -134,9 +137,23 @@ const UserStory = ({ username }) => {
                 ) : (
                   <video
                     src={`data:${stories[currentIndex].mediaType};base64,${stories[currentIndex].mediaData}`}
+                    controls
                     autoPlay
+                    muted={muted}
                     className="w-full h-full object-contain bg-black"
                   />
+                )}
+
+                {/* Audio */}
+                {stories[currentIndex].audioData && (
+                  <div className="absolute top-4 right-14 -translate-x-1/2 z-50">
+                    <AudioPlayer
+                      audioUrl={`data:${stories[currentIndex].audioType};base64,${stories[currentIndex].audioData}`}
+                      isActive={viewing}
+                      muted={muted}
+                      setMuted={setMuted}
+                    />
+                  </div>
                 )}
 
                 {/* Caption */}
@@ -147,7 +164,7 @@ const UserStory = ({ username }) => {
                 )}
 
                 {/* Likes, Replies, Views */}
-                <div className="absolute bottom-0 left-0 right-0 flex flex-row justify-between items-center p-4 bg-black bg-opacity-60">
+                <div className="absolute bottom-0 left-0 right-0 flex justify-between items-center p-4 bg-black bg-opacity-60">
                   <StoryLikes storyId={stories[currentIndex].id} />
                   <StoryReplies storyId={stories[currentIndex].id} />
                   <StoryViews storyId={stories[currentIndex].id} />
@@ -180,5 +197,3 @@ const UserStory = ({ username }) => {
 };
 
 export default UserStory;
-
-// <UserStory username="Chetan" />

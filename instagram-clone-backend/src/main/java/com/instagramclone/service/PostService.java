@@ -2,9 +2,11 @@ package com.instagramclone.service;
 
 import com.instagramclone.model.Post;
 import com.instagramclone.repository.PostRepository;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 
-import java.util.List;
 import java.util.Optional;
 
 @Service
@@ -21,14 +23,16 @@ public class PostService {
         return postRepository.save(post);
     }
 
-    // Get all posts
-    public List<Post> getAllPosts() {
-        return postRepository.findAll();
+    // Get paginated posts
+    public Page<Post> getAllPosts(int page, int size) {
+        Pageable pageable = PageRequest.of(page, size);
+        return postRepository.findAll(pageable);
     }
     
-    // Get posts by username
-    public List<Post> getPostByUsername(String username) {
-        return postRepository.findByUserUsername(username);
+    // Get paginated posts by username
+    public Page<Post> getPostsByUsername(String username, int page, int size) {
+        Pageable pageable = PageRequest.of(page, size);
+        return postRepository.findByUserUsernameOrderByCreatedAtDesc(username, pageable);
     }
 
     // Delete a post by ID
